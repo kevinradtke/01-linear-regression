@@ -2,24 +2,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 
-# Initialize datasets
-# empty datasets
-X = []
-Y = []
-
-# import values from food-profit
-with open('01-food-profit.csv', newline='') as csvfile:
-  reader = csv.DictReader(csvfile)
-  for row in reader:
-    X.append(float(row['x']))
-    Y.append(float(row['y']))
+# Import values from csv
+def read_csv(X, Y, file_name):
+  '''Reads a CSV with two float columns named "x" and "y" and fills X and Y lists'''
+  with open(file_name, newline='') as csvfile:
+    reader = csv.DictReader(csvfile)
+    for row in reader:
+      X.append(float(row['x']))
+      Y.append(float(row['y']))
 
 # Linear Regression Model
 class LinearRegression:
-  def train(self, X, Y):
-    def hyp(x):
-      return self.m * x + self.b
-
+  def fit(self, X, Y):
+    '''Uses least square regression to find m and b'''
     n = len(X)
     mean_x = np.mean(X)
     mean_y = np.mean(Y)
@@ -30,35 +25,90 @@ class LinearRegression:
       denom += (X[i] - mean_x) ** 2
     self.m = numer / denom
     self.b = mean_y - (self.m * mean_x)
-    return hyp
+    print(f'fit results\t t0: {self.b}, t1: {self.m}')
 
-  def test(self, hyp, x):
-    print(f'Testing x={x}, predicts y={hyp(x)}')
+  def predict(self, x):
+    '''Predicts y value using fit results'''
+    return self.m * x + self.b
+
+  def calc_cost(self, X, Y, t0, t1):
+    '''Calculates cost using predicted thetas'''
+    m = len(X)
+    cost = 0
+    for i in range(m):
+      prediction = t0 + t1 * X[i]
+      cost += prediction - Y[i]
+    return (1/2*m) * cost
+
+  def grad_desc(self, X, Y, alpha=0.005, iterations=10000):
+    '''Gradient descent and stores cur cost through epochs'''
+    m = len(X)
+    cost_history = np.zeros(iterations)
+    theta_0 = 1
+    theta_1 = 1
+
+    for it in range(iterations):
+      sum_0 = 0
+      sum_1 = 0
+      for i in range(m):
+        prediction = theta_0 + theta_1 * X[i]
+        sum_0 += prediction - Y[i]
+        sum_1 += (prediction - Y[i]) * X[i]
+      new_theta_0 = theta_0 - (1/m) * alpha * sum_0
+      new_theta_1 = theta_1 - (1/m) * alpha * sum_1
+      theta_0 = new_theta_0
+      theta_1 = new_theta_1
+      print(f'epoch {it}\t t0: {theta_0}, t1: {theta_1}')
+      cost_history[it] = self.calc_cost(X, Y, theta_0, theta_1)
+    return theta_0, theta_1, cost_history
+
+def test_hypothesis(model, samples):
+  '''Tests hypothesis with sample inputs'''
+  for x in samples:
+    print(f'Testing x={x}, predicts y={model.predict(x)}')
+
+# Plots
+# plotting scatter line
+def plot_scatter_line(X, Y, m, b, title):
+  '''Plots scatter coordinate points X and Y, and a line with slope m and intercept b'''
+  min_x = np.min(X)
+  max_x = np.max(X)
+  lin_x = np.linspace(min_x, max_x)
+  lin_y = m * lin_x + b
+  plt.plot(lin_x, lin_y, c='#58b970', label='Regression Line')
+  plt.scatter(X, Y, s=10, label='Scatter points')
+  plt.xlabel('x')
+  plt.ylabel('y')
+  plt.title(title)
+  plt.legend()
+  plt.show()
+
+# plot cost history
+def plot_cost(cost):
+  '''Plots historical cost points'''
+  plt.scatter(list(range(1, len(cost) + 1)), cost, s=10, label='Cost')
+  plt.xlabel('epochs')
+  plt.ylabel('cost')
+  plt.title('Cost function')
+  plt.legend()
+  plt.show()
+
+# Initialize datasets
+X = []
+Y = []
+# file_name = '01-sea-temperature.csv'
+file_name = '01-food-profit.csv'
+read_csv(X, Y, file_name)
 
 # Training model
-regression_model = LinearRegression()
-hyp = regression_model.train(X, Y)
-m = regression_model.m
-b = regression_model.b
+model = LinearRegression()
+t0, t1, cost_history = model.grad_desc(X, Y)
+model.fit(X, Y)
 
-# Testing hypothesis
-regression_model.test(hyp, 7.5)
-regression_model.test(hyp, 5)
-regression_model.test(hyp, 14)
+# Testing model
+test_hypothesis(model, [7.5, 5, 14, 20]) # testing random values
 
-# Plot
-# plotting line
-max_x = np.max(X) + 1
-min_x = np.min(X) - 1
-lin_x = np.linspace(min_x, max_x, 10)
-lin_y = m * lin_x + b
-plt.plot(lin_x, lin_y, c='#58b970', label='Regression Line')
-
-# plotting points
-plt.scatter(X, Y, s=10, label='Scatter points')
-
-# show plot
-plt.xlabel('x')
-plt.ylabel('y')
-plt.legend()
-plt.show()
+# Plotting Results
+plot_scatter_line(X, Y, model.m, model.b, 'Least Square Regression')
+plot_scatter_line(X, Y, t1, t0, 'Gradient Descent')
+plot_cost(cost_history)
