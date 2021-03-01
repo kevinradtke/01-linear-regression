@@ -40,8 +40,11 @@ class LinearRegression:
       cost += prediction - Y[i]
     return (1/2*m) * cost
 
-  def grad_desc(self, X, Y, alpha=0.005, iterations=10000):
-    '''Gradient descent and stores cur cost through epochs'''
+  def grad_desc(self, X, Y, alpha=0.02, iterations=10000, err=0.001):
+    '''
+    Gradient descent and stores cur cost through epochs.
+    Breaks cycle if cost converges given threshold err.
+    '''
     m = len(X)
     cost_history = np.zeros(iterations)
     theta_0 = 1
@@ -60,6 +63,8 @@ class LinearRegression:
       theta_1 = new_theta_1
       print(f'epoch {it}\t t0: {theta_0}, t1: {theta_1}')
       cost_history[it] = self.calc_cost(X, Y, theta_0, theta_1)
+      if (abs(cost_history[it] - cost_history[it-1])  < err):
+        break
     return theta_0, theta_1, cost_history
 
 def test_hypothesis(model, samples):
